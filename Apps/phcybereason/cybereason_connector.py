@@ -639,6 +639,33 @@ class CybereasonConnector(BaseConnector):
 
         return ActionResult.set_status(phantom.APP_SUCCESS, status_message="Successfully Requested Upgrade")
 
+    def restartSensor(self, ActionParams):
+    
+        ActionResult = self.add_action_result(PhantomAction(dict(ActionParams)))
+
+        Headers = {'Content-Type': 'application/json'}
+        sensorid = str(ActionParams['sensorid'])
+        sensorIdArray = []
+        if "," in sensorid:
+            filterArray = sensorid.strip().split(",")
+            sensorIdArray.extend(filterArray)
+        else:
+            sensorIdArray.append(sensorid)
+
+        query = json.dumps({"sensorsIds": sensorIdArray})
+
+        ReturnValue, Response = self.RequestsWrapper('POST', '/rest/sensors/action/restart', ActionResult, data=query, headers=Headers)
+
+        # Return failed status
+        if (phantom.is_fail(ReturnValue)):
+            return Action.set_status(phantom.APP_ERROR, status_message="Error Restarting Sensor: {0}".format(phantom.is_fail(ReturnValue)))
+
+        ActionResult.update_summary(Response)
+        # Data will typically be the raw JSON if we need to use it in a playbook
+        ActionResult.add_data(Response)
+
+        return ActionResult.set_status(phantom.APP_SUCCESS, status_message="Successfully Executed a sensor Restart")
+
     def _get_malop_sensor_ids(self, malop_id, action_result):
         sensor_ids = []
         try:
@@ -750,7 +777,10 @@ class CybereasonConnector(BaseConnector):
             ret_val = self._handle_set_reputation(param)
 
         elif Action == 'upgradeSensor':
-            Results == self.upgradeSensor(Parameters)
+            Results = self.upgradeSensor(Parameters)
+
+        elif Action == 'restartSensor':
+            Results = self.restartSensor(Parameters)
 
         elif action_id == 'query_processes':
             query_action = CybereasonQueryActions()
