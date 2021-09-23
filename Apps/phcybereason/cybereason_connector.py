@@ -425,7 +425,6 @@ class CybereasonConnector(BaseConnector):
         """
         Isolate the machine with specified id. The machine with the id provided as parameter will be
         disconnected from the network
-        
         Parameters:
             param: object containing the machine id
 
@@ -462,7 +461,6 @@ class CybereasonConnector(BaseConnector):
         """
         Un-isolate the machine with specified id. The machine with the id provided as parameter will be
         connected to the network again.
-        
         Parameters:
             param: object containing the machine id
 
@@ -612,8 +610,8 @@ class CybereasonConnector(BaseConnector):
 
         return action_result.set_status(phantom.APP_SUCCESS)
 
-    def upgradeSensor(self, ActionParams):
-    
+    def _handle_upgrade_sensor(self, ActionParams):
+
         ActionResult = self.add_action_result(PhantomAction(dict(ActionParams)))
 
         Headers = {'Content-Type': 'application/json'}
@@ -749,8 +747,8 @@ class CybereasonConnector(BaseConnector):
         elif action_id == 'set_reputation':
             ret_val = self._handle_set_reputation(param)
 
-        elif Action == 'upgradeSensor':
-            Results == self.upgradeSensor(Parameters)
+        elif action_id == 'upgrade_sensor':
+            ret_val = self._handle_upgrade_sensor(param)
 
         elif action_id == 'query_processes':
             query_action = CybereasonQueryActions()
