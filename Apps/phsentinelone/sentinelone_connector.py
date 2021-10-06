@@ -817,6 +817,45 @@ class SentineloneConnector(BaseConnector):
             return action_result.set_status(phantom.APP_ERROR, "Did not get proper response from the server")
         return action_result.set_status(phantom.APP_SUCCESS, "Successfully created firewall rule")
 
+    def _handle_hash_reputation(self, param):
+        self.save_progress("In action handler for: {0}".format(self.get_action_identifier()))
+        action_result = self.add_action_result(ActionResult(dict(param)))
+        hash = param.get('hash')
+        try:
+            site_ids = self._get_site_id(action_result)
+        except Exception:
+            return action_result.set_status(phantom.APP_ERROR, "Did not get proper response from the server")
+        self.save_progress('Agent query: {}'.format(site_ids))
+        summary = action_result.update_summary({})
+        summary['site_ids'] = site_ids
+        summary['hash'] = hash
+        header = self.HEADER
+        header["Authorization"] = "APIToken %s" % self.token
+        params = {"siteIds": site_ids}
+        ret_val, response = self._make_rest_call('/web/api/v2.1/hashes/{}/reputation'.format(hash), action_result, headers=header, params=params)
+        action_result.add_data(response)
+        self.save_progress("Ret_val: {0}".format(ret_val))
+        if phantom.is_fail(ret_val):
+            self.save_progress("Failed to get hash reputation.  Error: {0}".format(action_result.get_message()))
+            return action_result.get_status()
+        return action_result.set_status(phantom.APP_SUCCESS)
+
+    def _handle_get_threat_notes(self, param):
+        self.save_progress("In action handler for: {0}".format(self.get_action_identifier()))
+        action_result = self.add_action_result(ActionResult(dict(param)))
+        s1_threat_id = param['s1_threat_id']
+        summary = action_result.update_summary({})
+        summary['s1_threat_id'] = s1_threat_id
+        header = self.HEADER
+        header["Authorization"] = "APIToken %s" % self.token
+        ret_val, response = self._make_rest_call('/web/api/v2.1/threats/{}/notes'.format(s1_threat_id), action_result, headers=header)
+        self.save_progress("Ret_val: {0}".format(ret_val))
+        if phantom.is_fail(ret_val):
+            self.save_progress("Failed to get threat notes.  Error: {0}".format(action_result.get_message()))
+            return action_result.get_status()
+        action_result.add_data(response)
+        return action_result.set_status(phantom.APP_SUCCESS)
+
     def _get_agent_id(self, search_text, action_result):
         header = self.HEADER
         header["Authorization"] = "APIToken %s" % self.token
@@ -1051,6 +1090,8 @@ class SentineloneConnector(BaseConnector):
             ret_val = self._handle_create_firewall_rule(param)
         elif action_id == 'hash_reputation':
             ret_val = self._handle_hash_reputation(param)
+        elif action_id == 'get_threat_notes':
+            ret_val = self._handle_get_threat_notes(param)
         return ret_val
 
     def initialize(self):
