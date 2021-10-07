@@ -856,6 +856,34 @@ class SentineloneConnector(BaseConnector):
         action_result.add_data(response)
         return action_result.set_status(phantom.APP_SUCCESS)
 
+    def _handle_add_note(self, param):
+        self.save_progress("In action handler for: {0}".format(self.get_action_identifier()))
+        action_result = self.add_action_result(ActionResult(dict(param)))
+        s1_threat_ids = param['s1_threat_ids']
+        note = param['note']
+        summary = action_result.update_summary({})
+        summary['s1_threat_ids'] = s1_threat_ids
+        summary['note'] = note
+        header = self.HEADER
+        header["Authorization"] = "APIToken %s" % self.token
+        try:
+            body = {
+                "data": {
+                            "text": note
+                        },
+                "filter": {
+                            "ids": s1_threat_ids,
+                            "tenant": "true"
+                          }
+                    }
+            ret_val, response = self._make_rest_call('/web/api/v2.1/threats/notes', action_result, headers=header, method='post', data=json.dumps(body))
+            action_result.add_data(response)
+            if phantom.is_fail(ret_val):
+                return action_result.get_status()
+        except Exception:
+            return action_result.set_status(phantom.APP_ERROR, "Did not get proper response from the server")
+        return action_result.set_status(phantom.APP_SUCCESS, "Successfully added note to multiple threats.")
+
     def _get_agent_id(self, search_text, action_result):
         header = self.HEADER
         header["Authorization"] = "APIToken %s" % self.token
@@ -865,7 +893,6 @@ class SentineloneConnector(BaseConnector):
             return str(-1)
         endpoints_found = len(response['data'])
         self.save_progress("Endpoints found: {}".format(str(endpoints_found)))
-        action_result.add_data(response)
         if endpoints_found == 0:
             return '0'
         elif endpoints_found > 1:
@@ -1092,6 +1119,8 @@ class SentineloneConnector(BaseConnector):
             ret_val = self._handle_hash_reputation(param)
         elif action_id == 'get_threat_notes':
             ret_val = self._handle_get_threat_notes(param)
+        elif action_id == 'add_note':
+            ret_val = self._handle_add_note(param)
         return ret_val
 
     def initialize(self):
