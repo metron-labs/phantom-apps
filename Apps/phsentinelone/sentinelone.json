@@ -2062,13 +2062,13 @@
                     "column_order": 24
                 },
                 {
-                    "data_path": "action_result.data.*.data.*.remoteHosts.type",
+                    "data_path": "action_result.data.*.data.*.remoteHosts.*.type",
                     "data_type": "string",
                     "column_name": "RemoteHosts Type",
                     "column_order": 25
                 },
                 {
-                    "data_path": "action_result.data.*.data.*.remoteHosts.values",
+                    "data_path": "action_result.data.*.data.*.remoteHosts.*.values",
                     "data_type": "string",
                     "column_name": "RemoteHosts Values",
                     "column_order": 26
@@ -2082,7 +2082,7 @@
                 {
                     "data_path": "action_result.data.*.data.*.remotePort.values",
                     "data_type": "string",
-                    "column_name": "RemotePort Type",
+                    "column_name": "RemotePort Values",
                     "column_order": 28
                 },
                 {
@@ -2126,12 +2126,6 @@
                     "data_type": "string",
                     "column_name": "Tag Names",
                     "column_order": 35
-                },
-                {
-                    "data_path": "action_result.data.*.data.*.tags",
-                    "data_type": "string",
-                    "column_name": "Tags",
-                    "column_order": 36
                 },
                 {
                     "data_path": "action_result.data.*.data.*.updatedAt",
@@ -2260,6 +2254,267 @@
                     "data_type": "string",
                     "column_name": "Status",
                     "column_order": 6,
+                    "example_values": [
+                        "success",
+                        "failed"
+                    ]
+                },
+                {
+                    "data_path": "action_result.message",
+                    "data_type": "string"
+                },
+                {
+                    "data_path": "action_result.summary",
+                    "data_type": "string"
+                },
+                {
+                    "data_path": "summary.total_objects",
+                    "data_type": "numeric",
+                    "example_values": [
+                        1
+                    ]
+                },
+                {
+                    "data_path": "summary.total_objects_successful",
+                    "data_type": "numeric",
+                    "example_values": [
+                        1
+                    ]
+                }
+            ],
+            "render": {
+                "type": "table"
+            },
+            "versions": "EQ(*)"
+        },
+        {
+            "action": "hash reputation",
+                    "description": "Get the reputation of a hash, given the required SHA1. ",
+                    "type": "correct",
+                    "identifier": "hash_reputation",
+                    "read_only": false,
+                   "parameters": {
+                        "hash": {
+                            "description": "Hash of a file to get the reputation",
+                            "data_type": "string",
+                            "required": true,
+                            "primary": true,
+                            "contains": [
+                                "sha1"
+                            ],
+                            "order": 0
+                        }
+                    },
+                    "output": [
+                        {
+                            "data_path": "action_result.parameter.hash",
+                            "data_type": "string",
+                            "contains": [
+                                "sha1"
+                            ],
+                            "column_name": "Hash",
+                            "column_order": 0
+                        },
+                        {
+                            "data_path": "action_result.data.*.data.*.data.*.rank",
+                            "data_type": "string",
+                            "column_name": "Rank",
+                            "column_order": 1
+                        },
+                        {
+                            "data_path": "action_result.status",
+                            "data_type": "string",
+                            "example_values": [
+                                "success",
+                                "failed"
+                            ]
+                        },
+                        {
+                            "data_path": "action_result.message",
+                            "data_type": "string"
+                        },
+                        {
+                            "data_path": "action_result.summary",
+                            "data_type": "string"
+                        },
+                        {
+                            "data_path": "summary.total_objects",
+                            "data_type": "numeric",
+                            "example_value": [
+                                1
+                            ]
+                        },
+                        {
+                            "data_path": "summary.total_objects_successful",
+                            "data_type": "numeric",
+                            "example_value": [
+                                1
+                            ]
+                        }
+                    ],
+                    "render": {
+                        "type": "table"
+                    },
+                    "versions": "EQ(*)"
+        },
+        {
+            "action": "get threat notes",
+            "description": "Get the threat notes",
+            "type": "investigate",
+            "identifier": "get_threat_notes",
+            "read_only": true,
+            "parameters": {
+                "s1_threat_id": {
+                    "description": "The S1 Threat ID for a specific threat",
+                    "data_type": "string",
+                    "required": true,
+                    "primary": true,
+                    "contains": [
+                        "sentinelone s1 threat id"
+                    ],
+                    "order": 0
+                }
+            },
+            "output": [
+                {
+                    "data_path": "action_result.parameter.s1_threat_id",
+                    "data_type": "string",
+                    "contains": [
+                        "sentinelone s1 threat id"
+                    ],
+                    "column_name": "S1 Threat ID",
+                    "column_order": 0
+                },
+                {
+                    "data_path": "action_result.data.*.data.*.createdAt",
+                    "data_type": "string",
+                    "column_name": "Created At",
+                    "column_order": 1
+                },
+                {
+                    "data_path": "action_result.data.*.data.*.creator",
+                    "data_type": "string",
+                    "column_name": "Creator",
+                    "column_order": 2
+                },
+                {
+                    "data_path": "action_result.data.*.data.*.creatorId",
+                    "data_type": "string",
+                    "column_name": "Creator ID",
+                    "column_order": 3
+                },
+                {
+                    "data_path": "action_result.data.*.data.*.edited",
+                    "data_type": "boolean",
+                    "column_name": "Edited",
+                    "column_order": 4,
+                    "example_values": [
+                        true,
+                        false
+                    ]
+                },
+                {
+                    "data_path": "action_result.data.*.data.*.id",
+                    "data_type": "string",
+                    "column_name": "ID",
+                    "column_order": 5
+                },
+                {
+                    "data_path": "action_result.data.*.data.*.text",
+                    "data_type": "string",
+                    "column_name": "Text",
+                    "column_order": 6
+                },
+                {
+                    "data_path": "action_result.data.*.data.*.updatedAt",
+                    "data_type": "string",
+                    "column_name": "Updated At",
+                    "column_order": 7
+                },
+                {
+                    "data_path": "action_result.status",
+                    "data_type": "string",
+                    "example_values": [
+                        "success",
+                        "failed"
+                    ]
+                },
+                {
+                    "data_path": "action_result.message",
+                    "data_type": "string"
+                },
+                {
+                    "data_path": "action_result.summary",
+                    "data_type": "string"
+                },
+                {
+                    "data_path": "summary.total_objects",
+                    "data_type": "numeric",
+                    "example_value": [
+                        1
+                    ]
+                },
+                {
+                    "data_path": "summary.total_objects_successful",
+                    "data_type": "numeric",
+                    "example_value": [
+                        1
+                    ]
+                }
+            ],
+            "render": {
+                "type": "table"
+            },
+            "versions": "EQ(*)"
+        },
+        {
+            "action": "add threat note",
+            "description": "Add a threat note to multiple threats",
+            "type": "contain",
+            "identifier": "add_threat_note",
+            "read_only": false,
+            "parameters": {
+                "s1_threat_ids": {
+                    "description": "The S1 Threat IDs for a specific threats",
+                    "data_type": "string",
+                    "required": true,
+                    "primary": true,
+                    "contains": [
+                        "sentinelone s1 threat ids"
+                    ],
+                    "order": 0
+                },
+                "note": {
+                    "description": "Threat Note text",
+                    "data_type": "string",
+                    "required": true,
+                    "default": "Added via Phantom",
+                    "order": 1
+                }
+            },
+            "output": [
+                {
+                    "data_path": "action_result.parameter.s1_threat_ids",
+                    "data_type": "string",
+                    "contains": [
+                        "sentinelone s1 threat ids"
+                    ],
+                    "column_name": "S1 Threat IDs",
+                    "column_order": 0
+                },
+                {
+                    "data_path": "action_result.parameter.note",
+                    "data_type": "string"
+                },
+                {
+                    "data_path": "action_result.data",
+                    "data_type": "string"
+                },
+                {
+                    "data_path": "action_result.status",
+                    "data_type": "string",
+                    "column_name": "Status",
+                    "column_order": 1,
                     "example_values": [
                         "success",
                         "failed"
