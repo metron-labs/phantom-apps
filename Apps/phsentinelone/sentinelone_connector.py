@@ -821,18 +821,11 @@ class SentineloneConnector(BaseConnector):
         self.save_progress("In action handler for: {0}".format(self.get_action_identifier()))
         action_result = self.add_action_result(ActionResult(dict(param)))
         hash = param.get('hash')
-        try:
-            site_ids = self._get_site_id(action_result)
-        except Exception:
-            return action_result.set_status(phantom.APP_ERROR, "Did not get proper response from the server")
-        self.save_progress('Agent query: {}'.format(site_ids))
         summary = action_result.update_summary({})
-        summary['site_ids'] = site_ids
         summary['hash'] = hash
         header = self.HEADER
         header["Authorization"] = "APIToken %s" % self.token
-        params = {"siteIds": site_ids}
-        ret_val, response = self._make_rest_call('/web/api/v2.1/hashes/{}/reputation'.format(hash), action_result, headers=header, params=params)
+        ret_val, response = self._make_rest_call('/web/api/v2.1/hashes/{}/reputation'.format(hash), action_result, headers=header)
         action_result.add_data(response)
         self.save_progress("Ret_val: {0}".format(ret_val))
         if phantom.is_fail(ret_val):
@@ -866,6 +859,7 @@ class SentineloneConnector(BaseConnector):
         summary['note'] = note
         header = self.HEADER
         header["Authorization"] = "APIToken %s" % self.token
+        s1_threat_ids = s1_threat_ids.split(',')
         try:
             body = {
                 "data": {
@@ -1121,6 +1115,8 @@ class SentineloneConnector(BaseConnector):
             ret_val = self._handle_get_threat_notes(param)
         elif action_id == 'add_note':
             ret_val = self._handle_add_note(param)
+        elif action_id == 'download_from_cloud':
+            ret_val = self._handle_download_from_cloud(param)
         return ret_val
 
     def initialize(self):
