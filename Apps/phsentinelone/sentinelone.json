@@ -2468,10 +2468,10 @@
             "versions": "EQ(*)"
         },
         {
-            "action": "add note",
+            "action": "add threat note",
             "description": "Add a threat note to multiple threats",
             "type": "contain",
-            "identifier": "add_note",
+            "identifier": "add_threat_note",
             "read_only": false,
             "parameters": {
                 "s1_threat_ids": {

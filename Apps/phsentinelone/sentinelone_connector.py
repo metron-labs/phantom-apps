@@ -849,7 +849,7 @@ class SentineloneConnector(BaseConnector):
         action_result.add_data(response)
         return action_result.set_status(phantom.APP_SUCCESS)
 
-    def _handle_add_note(self, param):
+    def _handle_add_threat_note(self, param):
         self.save_progress("In action handler for: {0}".format(self.get_action_identifier()))
         action_result = self.add_action_result(ActionResult(dict(param)))
         s1_threat_ids = param['s1_threat_ids']
@@ -1113,10 +1113,8 @@ class SentineloneConnector(BaseConnector):
             ret_val = self._handle_hash_reputation(param)
         elif action_id == 'get_threat_notes':
             ret_val = self._handle_get_threat_notes(param)
-        elif action_id == 'add_note':
-            ret_val = self._handle_add_note(param)
-        elif action_id == 'download_from_cloud':
-            ret_val = self._handle_download_from_cloud(param)
+        elif action_id == 'add_threat_note':
+            ret_val = self._handle_add_threat_note(param)
         return ret_val
 
     def initialize(self):
