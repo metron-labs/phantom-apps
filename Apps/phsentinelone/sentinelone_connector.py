@@ -878,6 +878,88 @@ class SentineloneConnector(BaseConnector):
             return action_result.set_status(phantom.APP_ERROR, "Did not get proper response from the server")
         return action_result.set_status(phantom.APP_SUCCESS, "Successfully added note to multiple threats.")
 
+    def _handle_export_threat_timeline(self, param):
+        self.save_progress("In action handler for: {0}".format(self.get_action_identifier()))
+        action_result = self.add_action_result(ActionResult(dict(param)))
+        s1_threat_id = param['s1_threat_id']
+        summary = action_result.update_summary({})
+        summary['s1_threat_id'] = s1_threat_id
+        try:
+            action_result.add_data(self._base_url + '/web/api/v2.1/export/threats/{}/timeline'.format(s1_threat_id))
+        except Exception:
+            return action_result.set_status(phantom.APP_ERROR, "Did not get proper response from the server")
+        return action_result.set_status(phantom.APP_SUCCESS, "Successfully exported threat timeline.")
+
+    def _handle_export_mitigation_report(self, param):
+        self.save_progress("In action handler for: {0}".format(self.get_action_identifier()))
+        action_result = self.add_action_result(ActionResult(dict(param)))
+        s1_threat_id = param['s1_threat_id']
+        summary = action_result.update_summary({})
+        summary['s1_threat_id'] = s1_threat_id
+        mitigation_status = self._get_mitigation_status(s1_threat_id, action_result)
+        if mitigation_status == "not_mitigated":
+            return action_result.set_status(phantom.APP_ERROR, "Threat is not mitigated")
+        try:
+            report_id = self._get_report_id(s1_threat_id, action_result)
+            action_result.add_data(self._base_url + '/web/api/v2.1{}'.format(report_id))
+        except Exception:
+            return action_result.set_status(phantom.APP_ERROR, "Did not get proper response from the server")
+        return action_result.set_status(phantom.APP_SUCCESS, "Successfully exported mitigation report.")
+
+    def _handle_export_threats(self, param):
+        self.save_progress("In action handler for: {0}".format(self.get_action_identifier()))
+        action_result = self.add_action_result(ActionResult(dict(param)))
+        ip_hostname = param.get('ip_hostname')
+        try:
+            if ip_hostname:
+                try:
+                    ret_val = self._get_computer_name(ip_hostname, action_result)
+                except Exception:
+                    return action_result.set_status(phantom.APP_ERROR, "Did not get proper response from the server")
+                self.save_progress('Agent query: {}'.format(ret_val))
+
+                if ret_val == '0':
+                    return action_result.set_status(phantom.APP_ERROR, "Endpoint not found")
+                elif ret_val == '99':
+                    return action_result.set_status(phantom.APP_ERROR, "More than one endpoint found")
+                else:
+                    summary = action_result.update_summary({})
+                    summary['ip_hostname'] = ip_hostname
+                    summary['computer_name'] = ret_val
+                action_result.add_data(self._base_url + '/web/api/v2.1/threats/export?containerName__contains={}'.format(ret_val))
+            else:
+                action_result.add_data(self._base_url + '/web/api/v2.1/threats/export')
+        except Exception:
+            return action_result.set_status(phantom.APP_ERROR, "Did not get proper response from the server")
+        return action_result.set_status(phantom.APP_SUCCESS, "Successfully exported threats.")
+
+    def _get_mitigation_status(self, search_text, action_result):
+        header = self.HEADER
+        header["Authorization"] = "APIToken %s" % self.token
+        params = {"ids": search_text}
+        ret_val, response = self._make_rest_call('/web/api/v2.1/threats', action_result, headers=header, params=params, method='get')
+        if phantom.is_fail(ret_val):
+            return str(-1)
+        try:
+            mitigation_status_found = len(response['data'])
+            self.save_progress("Status found: {}".format(str(mitigation_status_found)))
+            return response["data"][0]["threatInfo"]["mitigationStatus"]
+        except KeyError:
+            return action_result.set_status(phantom.APP_ERROR, "Error fetching mitigation status")
+
+    def _get_report_id(self, search_text, action_result):
+        header = self.HEADER
+        header["Authorization"] = "APIToken %s" % self.token
+        report_id, response = self._make_rest_call('/web/api/v2.1/private/threats/{}/analysis'.format(search_text), action_result, headers=header, method='get')
+        if phantom.is_fail(report_id):
+            return str(-1)
+        try:
+            report_id_found = len(response['data'])
+            self.save_progress("Threat found: {}".format(str(report_id_found)))
+            return response["data"]["mitigationStatus"][0]["latestReport"]
+        except KeyError:
+            return action_result.set_status(phantom.APP_ERROR, "Error fetching report id")
+
     def _get_agent_id(self, search_text, action_result):
         header = self.HEADER
         header["Authorization"] = "APIToken %s" % self.token
@@ -1115,6 +1197,12 @@ class SentineloneConnector(BaseConnector):
             ret_val = self._handle_get_threat_notes(param)
         elif action_id == 'add_threat_note':
             ret_val = self._handle_add_threat_note(param)
+        elif action_id == 'export_threat_timeline':
+            ret_val = self._handle_export_threat_timeline(param)
+        elif action_id == 'export_mitigation_report':
+            ret_val = self._handle_export_mitigation_report(param)
+        elif action_id == 'export_threats':
+            ret_val = self._handle_export_threats(param)
         return ret_val
 
     def initialize(self):
