@@ -2549,6 +2549,218 @@
             "versions": "EQ(*)"
         },
         {
+            "action": "export threat timeline",
+            "description": "Export a threat's timeline.",
+            "type": "investigate",
+            "identifier": "export_threat_timeline",
+            "read_only": true,
+            "parameters": {
+                "s1_threat_id": {
+                    "description": "The S1 Threat ID for a specific threat",
+                    "data_type": "string",
+                    "required": true,
+                    "primary": true,
+                    "contains": [
+                        "sentinelone s1 threat id"
+                    ],
+                    "order": 0
+                }
+            },
+            "output": [
+                {
+                    "data_path": "action_result.parameter.s1_threat_id",
+                    "data_type": "string",
+                    "contains": [
+                        "sentinelone s1 threat id"
+                    ],
+                    "column_name": "S1 Threat ID",
+                    "column_order": 0
+                },
+                {
+                    "data_path": "action_result.data.*.data.*.url",
+                    "data_type": "string",
+                    "column_name": "Download URL",
+                    "column_order": 1
+                },
+                {
+                    "data_path": "action_result.status",
+                    "data_type": "string",
+                    "example_values": [
+                        "success",
+                        "failed"
+                    ]
+                },
+                {
+                    "data_path": "action_result.message",
+                    "data_type": "string"
+                },
+                {
+                    "data_path": "action_result.summary",
+                    "data_type": "string"
+                },
+                {
+                    "data_path": "summary.total_objects",
+                    "data_type": "numeric",
+                    "example_value": [
+                        1
+                    ]
+                },
+                {
+                    "data_path": "summary.total_objects_successful",
+                    "data_type": "numeric",
+                    "example_value": [
+                        1
+                    ]
+                }
+            ],
+            "render": {
+                "type": "table"
+            },
+            "versions": "EQ(*)"
+        },
+        {
+            "action": "export mitigation report",
+            "description": "Export the mitigation report of threat",
+            "type": "investigate",
+            "identifier": "export_mitigation_report",
+            "read_only": true,
+            "parameters": {
+                "s1_threat_id": {
+                    "description": "The S1 Threat ID for a specific threat",
+                    "data_type": "string",
+                    "required": true,
+                    "primary": true,
+                    "contains": [
+                        "sentinelone s1 threat id"
+                    ],
+                    "order": 0
+                }
+            },
+            "output": [
+                {
+                    "data_path": "action_result.parameter.s1_threat_id",
+                    "data_type": "string",
+                    "contains": [
+                        "sentinelone s1 threat id"
+                    ],
+                    "column_name": "S1 Threat ID",
+                    "column_order": 0
+                },
+                {
+                    "data_path": "action_result.data.*.data.*.url",
+                    "data_type": "string",
+                    "column_name": "Download URL",
+                    "column_order": 1
+                },
+                {
+                    "data_path": "action_result.status",
+                    "data_type": "string",
+                    "example_values": [
+                        "success",
+                        "failed"
+                    ]
+                },
+                {
+                    "data_path": "action_result.message",
+                    "data_type": "string"
+                },
+                {
+                    "data_path": "action_result.summary",
+                    "data_type": "string"
+                },
+                {
+                    "data_path": "summary.total_objects",
+                    "data_type": "numeric",
+                    "example_value": [
+                        1
+                    ]
+                },
+                {
+                    "data_path": "summary.total_objects_successful",
+                    "data_type": "numeric",
+                    "example_value": [
+                        1
+                    ]
+                }
+            ],
+            "render": {
+                "type": "table"
+            },
+            "versions": "EQ(*)"
+        },
+        {
+            "action": "export threats",
+            "description": "Export data of threats",
+            "type": "investigate",
+            "identifier": "export_threats",
+            "read_only": true,
+            "parameters": {
+                "ip_hostname": {
+                    "description": "The IP or hostname of an endpoint",
+                    "data_type": "string",
+                    "required": false,
+                    "primary": true,
+                    "contains": [
+                        "host name",
+                        "ip"
+                    ],
+                    "order": 0
+                }
+        },
+            "output": [
+                {
+                    "data_path": "action_result.parameter.ip_hostname",
+                    "data_type": "string",
+                    "contains": [
+                        "host name",
+                        "ip"
+                    ],
+                    "column_name": "IP Host Name",
+                    "column_order": 0
+                },
+                {
+                    "data_path": "action_result.data.*.data.*.url",
+                    "data_type": "string",
+                    "column_name": "Download URL",
+                    "column_order": 1
+                },
+                {
+                    "data_path": "action_result.status",
+                    "data_type": "string",
+                    "example_values": [
+                        "success",
+                        "failed"
+                    ]
+                },
+                {
+                    "data_path": "action_result.message",
+                    "data_type": "string"
+                },
+                {
+                    "data_path": "action_result.summary",
+                    "data_type": "string"
+                },
+                {
+                    "data_path": "summary.total_objects",
+                    "data_type": "numeric",
+                    "example_values": [
+                        1
+                    ]
+                },
+                {
+                    "data_path": "summary.total_objects_successful",
+                    "data_type": "numeric",
+                    "example_values": [
+                        1
+                    ]
+                }
+            ],
+            "render": {
+                "type": "table"
+            },
+            "versions": "EQ(*)"
+        },
+        {
             "action": "on poll",
             "description": "Callback action for the on_poll ingest functionality",
             "type": "ingest",
