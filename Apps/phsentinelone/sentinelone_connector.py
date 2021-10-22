@@ -933,6 +933,33 @@ class SentineloneConnector(BaseConnector):
             return action_result.set_status(phantom.APP_ERROR, "Did not get proper response from the server")
         return action_result.set_status(phantom.APP_SUCCESS, "Successfully exported threats.")
 
+    def _handle_fetch_threat_file(self, param):
+        self.save_progress("In action handler for: {0}".format(self.get_action_identifier()))
+        action_result = self.add_action_result(ActionResult(dict(param)))
+        password = param['password']
+        s1_threat_id = param['s1_threat_id']
+        summary = action_result.update_summary({})
+        summary['s1_threat_id'] = s1_threat_id
+        header = self.HEADER
+        header["Authorization"] = "APIToken %s" % self.token
+        try:
+            body = {
+                "data": {
+                            "password": password
+                        },
+                "filter": {
+                            "ids": s1_threat_id,
+                            "tenant": "true"
+                        }
+                    }
+            ret_val, response = self._make_rest_call('/web/api/v2.1/threats/fetch-file', action_result, headers=header, method='post', data=json.dumps(body))
+            action_result.add_data(response)
+            if phantom.is_fail(ret_val):
+                return action_result.get_status()
+        except Exception:
+            return action_result.set_status(phantom.APP_ERROR, "Did not get proper response from the server")
+        return action_result.set_status(phantom.APP_SUCCESS, "Successfully fetched threat file.")
+
     def _get_mitigation_status(self, search_text, action_result):
         header = self.HEADER
         header["Authorization"] = "APIToken %s" % self.token
@@ -1149,60 +1176,39 @@ class SentineloneConnector(BaseConnector):
         action_id = self.get_action_identifier()
         self.debug_print('action_id', self.get_action_identifier())
         self._log.info(('action_id={}').format(self.get_action_identifier()))
-        if action_id == 'test_connectivity':
-            ret_val = self._handle_test_connectivity(param)
-        elif action_id == 'on_poll':
-            ret_val = self._handle_on_poll(param)
-        elif action_id == 'block_hash':
-            ret_val = self._handle_block_hash(param)
-        elif action_id == 'unblock_hash':
-            ret_val = self._handle_unblock_hash(param)
-        elif action_id == 'quarantine_device':
-            ret_val = self._handle_quarantine_device(param)
-        elif action_id == 'unquarantine_device':
-            ret_val = self._handle_unquarantine_device(param)
-        elif action_id == 'mitigate_threat':
-            ret_val = self._handle_mitigate_threat(param)
-        elif action_id == 'abort_scan':
-            ret_val = self._handle_abort_scan(param)
-        elif action_id == 'shutdown_endpoint':
-            ret_val = self._handle_shutdown_endpoint(param)
-        elif action_id == 'broadcast_message':
-            ret_val = self._handle_broadcast_message(param)
-        elif action_id == 'fetch_files':
-            ret_val = self._handle_fetch_files(param)
-        elif action_id == 'fetch_firewall_rules':
-            ret_val = self._handle_fetch_firewall_rules(param)
-        elif action_id == 'fetch_firewall_logs':
-            ret_val = self._handle_fetch_firewall_logs(param)
-        elif action_id == 'scan_endpoint':
-            ret_val = self._handle_scan_endpoint(param)
-        elif action_id == 'get_endpoint_info':
-            ret_val = self._handle_get_endpoint_info(param)
-        elif action_id == 'get_threat_info':
-            ret_val = self._handle_get_threat_info(param)
-        elif action_id == 'get_applications':
-            ret_val = self._handle_get_applications(param)
-        elif action_id == 'get_cves':
-            ret_val = self._handle_get_cves(param)
-        elif action_id == 'get_device_control_events':
-            ret_val = self._handle_get_device_control_events(param)
-        elif action_id == 'get_firewall_rules':
-            ret_val = self._handle_get_firewall_rules(param)
-        elif action_id == 'create_firewall_rule':
-            ret_val = self._handle_create_firewall_rule(param)
-        elif action_id == 'hash_reputation':
-            ret_val = self._handle_hash_reputation(param)
-        elif action_id == 'get_threat_notes':
-            ret_val = self._handle_get_threat_notes(param)
-        elif action_id == 'add_threat_note':
-            ret_val = self._handle_add_threat_note(param)
-        elif action_id == 'export_threat_timeline':
-            ret_val = self._handle_export_threat_timeline(param)
-        elif action_id == 'export_mitigation_report':
-            ret_val = self._handle_export_mitigation_report(param)
-        elif action_id == 'export_threats':
-            ret_val = self._handle_export_threats(param)
+        function_map = {
+            'test_connectivity': self._handle_test_connectivity,
+            'on_poll': self._handle_on_poll,
+            'block_hash': self._handle_block_hash,
+            'unblock_hash': self._handle_unblock_hash,
+            'quarantine_device': self._handle_quarantine_device,
+            'unquarantine_device': self._handle_unquarantine_device,
+            'mitigate_threat': self._handle_mitigate_threat,
+            'abort_scan': self._handle_abort_scan,
+            'shutdown_endpoint': self._handle_shutdown_endpoint,
+            'broadcast_message': self._handle_broadcast_message,
+            'fetch_files': self._handle_fetch_files,
+            'fetch_firewall_rules': self._handle_fetch_firewall_rules,
+            'fetch_firewall_logs': self._handle_fetch_firewall_logs,
+            'scan_endpoint': self._handle_scan_endpoint,
+            'get_endpoint_info': self._handle_get_endpoint_info,
+            'get_threat_info': self._handle_get_threat_info,
+            'get_applications': self._handle_get_applications,
+            'get_cves': self._handle_get_cves,
+            'get_device_control_events': self._handle_get_device_control_events,
+            'get_firewall_rules': self._handle_get_firewall_rules,
+            'create_firewall_rule': self._handle_create_firewall_rule,
+            'hash_reputation': self._handle_hash_reputation,
+            'get_threat_notes': self._handle_get_threat_notes,
+            'add_threat_note': self._handle_add_threat_note,
+            'export_threat_timeline': self._handle_export_threat_timeline,
+            'export_mitigation_report': self._handle_export_mitigation_report,
+            'export_threats': self._handle_export_threats,
+            "fetch_threat_file": self._handle_fetch_threat_file
+        }
+        handler = function_map.get(action_id)
+        if handler:
+            ret_val = handler(param)
         return ret_val
 
     def initialize(self):
