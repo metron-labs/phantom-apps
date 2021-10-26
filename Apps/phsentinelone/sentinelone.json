@@ -699,7 +699,7 @@
                     "order": 1
                 },
                 "ip_hostname": {
-                    "description": "The IP or hostname of an endpoint to broadcast message",
+                    "description": "The IP or hostname of an endpoint to fetch file",
                     "data_type": "string",
                     "required": true,
                     "primary": true,
@@ -2795,7 +2795,100 @@
                     "column_order": 0
                 },
                 {
+                    "data_path": "action_result.summary.download_url",
+                    "data_type": "string",
+                    "column_name": "Download URL",
+                    "column_order": 1
+                },
+                {
                     "data_path": "action_result.parameter.password",
+                    "data_type": "string"
+                },
+                {
+                    "data_path": "action_result.data",
+                    "data_type": "string"
+                },
+                {
+                    "data_path": "action_result.status",
+                    "data_type": "string",
+                    "column_name": "Status",
+                    "column_order": 1,
+                    "example_values": [
+                        "success",
+                        "failed"
+                    ]
+                },
+                {
+                    "data_path": "action_result.message",
+                    "data_type": "string"
+                },
+                {
+                    "data_path": "action_result.summary",
+                    "data_type": "string"
+                },
+                {
+                    "data_path": "summary.total_objects",
+                    "data_type": "numeric",
+                    "example_values": [
+                        1
+                    ]
+                },
+                {
+                    "data_path": "summary.total_objects_successful",
+                    "data_type": "numeric",
+                    "example_values": [
+                        1
+                    ]
+                }
+            ],
+            "render": {
+                "type": "table"
+            },
+            "versions": "EQ(*)"
+        },
+        {
+            "action": "update threat analystverdict",
+            "description": "Change the verdict of a threat, as determined by a Console user.",
+            "type": "contain",
+            "identifier": "update_threat_analyst_verdict",
+            "read_only": false,
+            "parameters": {
+                "s1_threat_id": {
+                    "description": "The S1 Threat ID for a specific threat",
+                    "data_type": "string",
+                    "required": true,
+                    "primary": true,
+                    "contains": [
+                        "sentinelone s1 threat id"
+                    ],
+                    "order": 0
+                },
+                "analyst_verdict": {
+                    "description": "Analyst verdict",
+                    "data_type": "string",
+                    "required": true,
+                    "value_list": [
+                        "undefined",
+					    "true_positive",
+					    "false_positive",
+					    "suspicious"
+                    ],
+                    "default": "undefined",
+                    "order": 2
+                }
+            },
+            "output": [
+                {
+                    "data_path": "action_result.parameter.s1_threat_id",
+                    "data_type": "string",
+                    "contains": [
+                        "sentinelone s1 threat id"
+                    ],
+                    "column_name": "S1 Threat ID",
+                    "column_order": 0
+                },
+                {
+                    "data_path": "action_result.parameter.analyst_verdict",
                     "data_type": "string"
                 },
                 {
