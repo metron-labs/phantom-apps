@@ -884,9 +884,9 @@ class SentineloneConnector(BaseConnector):
         s1_threat_id = param['s1_threat_id']
         summary = action_result.update_summary({})
         summary['s1_threat_id'] = s1_threat_id
-        threat_id_found = self._get_threat_id(s1_threat_id, action_result)
+        threat_id_found = self._validate_threat_id(s1_threat_id, action_result)
         if threat_id_found == "-1":
-            return action_result.set_status(phantom.APP_ERROR, "Threat ID is not valid")
+            return action_result.set_status(phantom.APP_ERROR, "Threat ID is invalid")
         try:
             action_result.add_data(self._base_url + '/web/api/v2.1/export/threats/{}/timeline'.format(s1_threat_id))
         except Exception:
@@ -900,9 +900,9 @@ class SentineloneConnector(BaseConnector):
         summary = action_result.update_summary({})
         summary['s1_threat_id'] = s1_threat_id
         mitigation_status = self._get_mitigation_status(s1_threat_id, action_result)
-        threat_id_found = self._get_threat_id(s1_threat_id, action_result)
+        threat_id_found = self._validate_threat_id(s1_threat_id, action_result)
         if threat_id_found == "-1":
-            return action_result.set_status(phantom.APP_ERROR, "Threat ID is not valid")
+            return action_result.set_status(phantom.APP_ERROR, "Threat ID is invalid")
         if mitigation_status == "not_mitigated":
             return action_result.set_status(phantom.APP_ERROR, "Threat is not mitigated")
         try:
@@ -966,9 +966,9 @@ class SentineloneConnector(BaseConnector):
             return action_result.set_status(phantom.APP_ERROR, "Did not get proper response from the server")
         # giving time to fetch file and generate download_url
         time.sleep(30)
-        download_endpoint = self._get_download_url(s1_threat_id, action_result)
-        download_url = self._base_url + '/web/api/v2.1{}'.format(download_endpoint)
-        summary['download_url'] = download_url
+        threat_file_download_endpoint = self._get_threat_file_download_url(s1_threat_id, action_result)
+        threat_file_download_url = self._base_url + '/web/api/v2.1{}'.format(threat_file_download_endpoint)
+        summary['threat_file_download_url'] = threat_file_download_url
         if phantom.is_fail(ret_val):
             self.save_progress("Failed to fetch threat file. Error: {0}".format(action_result.get_message()))
             return action_result.get_status()
@@ -1003,7 +1003,53 @@ class SentineloneConnector(BaseConnector):
             return action_result.set_status(phantom.APP_ERROR, "Did not get proper response from the server")
         return action_result.set_status(phantom.APP_SUCCESS, "Successfully updated threat analyst verdict.")
 
-    def _get_download_url(self, search_text, action_result):
+    def _handle_get_threat_timeline(self, param):
+        self.save_progress("In action handler for: {0}".format(self.get_action_identifier()))
+        action_result = self.add_action_result(ActionResult(dict(param)))
+        s1_threat_id = param['s1_threat_id']
+        summary = action_result.update_summary({})
+        summary['s1_threat_id'] = s1_threat_id
+        header = self.HEADER
+        header["Authorization"] = "APIToken %s" % self.token
+        ret_val, response = self._make_rest_call('/web/api/v2.1/threats/{}/timeline'.format(s1_threat_id), action_result, headers=header)
+        action_result.add_data(response)
+        self.save_progress("Ret_val: {0}".format(ret_val))
+        if phantom.is_fail(ret_val):
+            return action_result.get_status()
+        return action_result.set_status(phantom.APP_SUCCESS)
+
+    def _handle_update_threat_incident(self, param):
+        self.save_progress("In action handler for: {0}".format(self.get_action_identifier()))
+        action_result = self.add_action_result(ActionResult(dict(param)))
+        analyst_verdict = param['analyst_verdict']
+        incident_status = param['incident_status']
+        s1_threat_id = param['s1_threat_id']
+        summary = action_result.update_summary({})
+        summary['s1_threat_id'] = s1_threat_id
+        header = self.HEADER
+        header["Authorization"] = "APIToken %s" % self.token
+        try:
+            body = {
+                "data": {
+                            "analystVerdict": analyst_verdict,
+                            "incidentStatus": incident_status
+                        },
+                "filter": {
+                            "ids": s1_threat_id,
+                            "tenant": "true"
+                        }
+                    }
+            ret_val, response = self._make_rest_call('/web/api/v2.1/threats/incident', action_result, headers=header, method='post', data=json.dumps(body))
+            action_result.add_data(response)
+            if phantom.is_fail(ret_val):
+                return action_result.get_status()
+            if response.get('data', {}).get('affected') == 0:
+                return action_result.set_status(phantom.APP_ERROR, "Given threat incident status is already present")
+        except Exception:
+            return action_result.set_status(phantom.APP_ERROR, "Did not get proper response from the server")
+        return action_result.set_status(phantom.APP_SUCCESS, "Successfully updated threat incident status.")
+
+    def _get_threat_file_download_url(self, search_text, action_result):
         header = self.HEADER
         header["Authorization"] = "APIToken %s" % self.token
         ret_val, response = self._make_rest_call('/web/api/v2.1/threats/{}/timeline?skip=0&limit=30&sortOrder=desc'.format(search_text),
@@ -1024,7 +1070,7 @@ class SentineloneConnector(BaseConnector):
         except KeyError:
             return action_result.set_status(phantom.APP_ERROR, "Error fetching download URL")
 
-    def _get_threat_id(self, search_text, action_result):
+    def _validate_threat_id(self, search_text, action_result):
         header = self.HEADER
         header["Authorization"] = "APIToken %s" % self.token
         params = {"ids": search_text}
@@ -1283,7 +1329,9 @@ class SentineloneConnector(BaseConnector):
             'export_mitigation_report': self._handle_export_mitigation_report,
             'export_threats': self._handle_export_threats,
             "fetch_threat_file": self._handle_fetch_threat_file,
-            "update_threat_analyst_verdict": self._handle_update_threat_analyst_verdict
+            "update_threat_analyst_verdict": self._handle_update_threat_analyst_verdict,
+            "get_threat_timeline": self._handle_get_threat_timeline,
+            "update_threat_incident": self._handle_update_threat_incident
         }
         handler = function_map.get(action_id)
         if handler:
