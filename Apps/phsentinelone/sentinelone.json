@@ -2795,7 +2795,7 @@
                     "column_order": 0
                 },
                 {
-                    "data_path": "action_result.summary.download_url",
+                    "data_path": "action_result.summary.threat_file_download_url",
                     "data_type": "string",
                     "column_name": "Download URL",
                     "column_order": 1
