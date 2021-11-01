@@ -748,6 +748,15 @@ class SentineloneConnector(BaseConnector):
             params = {"siteIds": site_id}
             ret_val, response = self._make_rest_call('/web/api/v2.1/firewall-control', action_result, headers=header, params=params)
             action_result.add_data(response)
+            next = True
+            while next:
+                if response["pagination"]["nextCursor"] is not None:
+                    params = {"cursor": response["pagination"]["nextCursor"]}
+                    ret_val, response = self._make_rest_call('/web/api/v2.1/firewall-control', action_result, headers=header, params=params)
+                    action_result.add_data(response)
+                else:
+                    next = False
+                    break
             self.save_progress("Ret_val: {0}".format(ret_val))
             if phantom.is_fail(ret_val):
                 self.save_progress("Failed to get firewall rules.  Error: {0}".format(action_result.get_message()))
@@ -919,7 +928,7 @@ class SentineloneConnector(BaseConnector):
         try:
             if ip_hostname:
                 try:
-                    ret_val = self._get_computer_name(ip_hostname, action_result)
+                    ret_val = self._get_agent_id(ip_hostname, action_result)
                 except Exception:
                     return action_result.set_status(phantom.APP_ERROR, "Did not get proper response from the server")
                 self.save_progress('Agent query: {}'.format(ret_val))
@@ -931,8 +940,8 @@ class SentineloneConnector(BaseConnector):
                 else:
                     summary = action_result.update_summary({})
                     summary['ip_hostname'] = ip_hostname
-                    summary['computer_name'] = ret_val
-                action_result.add_data(self._base_url + '/web/api/v2.1/threats/export?containerName__contains={}'.format(ret_val))
+                    summary['agent_id'] = ret_val
+                action_result.add_data(self._base_url + '/web/api/v2.1/threats/export?agentIds={}'.format(ret_val))
             else:
                 action_result.add_data(self._base_url + '/web/api/v2.1/threats/export')
         except Exception:
@@ -1011,12 +1020,25 @@ class SentineloneConnector(BaseConnector):
         summary['s1_threat_id'] = s1_threat_id
         header = self.HEADER
         header["Authorization"] = "APIToken %s" % self.token
-        ret_val, response = self._make_rest_call('/web/api/v2.1/threats/{}/timeline'.format(s1_threat_id), action_result, headers=header)
-        action_result.add_data(response)
-        self.save_progress("Ret_val: {0}".format(ret_val))
-        if phantom.is_fail(ret_val):
-            return action_result.get_status()
-        return action_result.set_status(phantom.APP_SUCCESS)
+        threat_id_found = self._validate_threat_id(s1_threat_id, action_result)
+        if threat_id_found == "-1":
+            return action_result.set_status(phantom.APP_ERROR, "Threat ID is invalid")
+        else:
+            ret_val, response = self._make_rest_call('/web/api/v2.1/threats/{}/timeline'.format(s1_threat_id), action_result, headers=header)
+            action_result.add_data(response)
+            self.save_progress("Ret_val: {0}".format(ret_val))
+            next = True
+            while next:
+                if response["pagination"]["nextCursor"] is not None:
+                    params = {"cursor": response["pagination"]["nextCursor"]}
+                    ret_val, response = self._make_rest_call('/web/api/v2.1/threats/{}/timeline'.format(s1_threat_id), action_result, headers=header, params=params)
+                    action_result.add_data(response)
+                else:
+                    next = False
+                    break
+            if phantom.is_fail(ret_val):
+                return action_result.get_status()
+            return action_result.set_status(phantom.APP_SUCCESS)
 
     def _handle_update_threat_incident(self, param):
         self.save_progress("In action handler for: {0}".format(self.get_action_identifier()))
