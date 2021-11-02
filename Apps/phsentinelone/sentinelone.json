@@ -3034,7 +3034,7 @@
                     "column_order": 12
                 },
                 {
-                    "data_path": "action_result.data.*.data.*.data.*.scopeName",
+                    "data_path": "action_result.data.*.data.*.data.scopeName",
                     "data_type": "string",
                     "column_name": "Scope Name",
                     "column_order": 13
