@@ -749,10 +749,9 @@ class SentineloneConnector(BaseConnector):
             ret_val, response = self._make_rest_call('/web/api/v2.1/firewall-control', action_result, headers=header, params=params)
             action_result.add_data(response)
             next = True
-            cursor = response["pagination"]["nextCursor"]
             while next:
-                if cursor is not None:
-                    params["cursor"] = cursor
+                if response["pagination"]["nextCursor"] is not None:
+                    params["cursor"] = response["pagination"]["nextCursor"]
                     ret_val, response = self._make_rest_call('/web/api/v2.1/firewall-control', action_result, headers=header, params=params)
                     action_result.add_data(response)
                 else:
