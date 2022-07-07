@@ -1,5 +1,5 @@
 # File: checkpoint_connector.py
-# Copyright (c) 2017-2020 Splunk Inc.
+# Copyright (c) 2017-2021 Splunk Inc.
 #
 # Licensed under Apache 2.0 (https://www.apache.org/licenses/LICENSE-2.0.txt)
 
@@ -23,6 +23,10 @@ import re
 class CheckpointConnector(BaseConnector):
 
     # The actions supported by this connector
+    ACTION_ID_LOGOUT_SESSION = "logout_session"
+    ACTION_ID_DELETE_HOST = "delete_host"
+    ACTION_ID_LIST_HOSTS = "list_hosts"
+    ACTION_ID_ADD_HOST = "add_host"
     ACTION_ID_BLOCK_IP = "block_ip"
     ACTION_ID_UNBLOCK_IP = "unblock_ip"
     ACTION_ID_LIST_LAYERS = "list_layers"
@@ -180,9 +184,48 @@ class CheckpointConnector(BaseConnector):
         if (not ret_val):
             return action_result.get_status()
 
-        self._headers['X-chkp-sid'] = resp_json.get('sid')
+        self._sid = resp_json.get('sid')
+
+        self._headers['X-chkp-sid'] = self._sid
 
         return phantom.APP_SUCCESS
+
+    def _logout(self, action_result):
+
+        if (self._sid is None):
+            # logout already called, sid is null
+            return phantom.APP_SUCCESS
+
+        ret_val, resp_json = self._make_rest_call('logout', {}, action_result)
+
+        if phantom.is_fail(ret_val):
+            self.save_progress("Failed to logout: {}".format(action_result.get_status_message()))
+            return action_result.get_status(), action_result.get_status_message()
+
+        self._sid = None
+
+        return phantom.APP_SUCCESS, "Successfully logged out of session"
+
+    def _logout_session(self, param):
+
+        action_result = self.add_action_result(ActionResult(dict(param)))
+
+        if not(self._login(action_result)):
+            return action_result.get_status()
+
+        sid_existing_session = param['session_id']
+        sid_auth = self._sid
+
+        self._headers['X-chkp-sid'] = sid_existing_session
+
+        ret_val, msg = self._logout(self)
+
+        self._sid = sid_auth
+        self._headers['X-chkp-sid'] = sid_auth
+
+        self._logout(self)
+
+        return action_result.set_status(phantom.APP_SUCCESS if ret_val else phantom.APP_ERROR, msg)
 
     def _publish_and_wait(self, action_result):
 
@@ -280,6 +323,8 @@ class CheckpointConnector(BaseConnector):
             self.append_to_message(CHECKPOINT_ERR_CONNECTIVITY_TEST)
             return self.get_status()
 
+        self._logout(self)
+
         return self.set_status_save_progress(phantom.APP_SUCCESS, CHECKPOINT_SUCC_CONNECTIVITY_TEST)
 
     def _list_policies(self, param):
@@ -310,6 +355,9 @@ class CheckpointConnector(BaseConnector):
 
         else:
             message = "Found no policies"
+
+        # logout of session
+        self._logout(self)
 
         return action_result.set_status(phantom.APP_SUCCESS, message)
 
@@ -342,6 +390,9 @@ class CheckpointConnector(BaseConnector):
         else:
             message = "Found no layers"
 
+        # logout of session
+        self._logout(self)
+
         return action_result.set_status(phantom.APP_SUCCESS, message)
 
     def _block_ip(self, param):
@@ -363,7 +414,7 @@ class CheckpointConnector(BaseConnector):
         if (new_name is None):
             return action_result.get_status()
 
-        if (new_name is not ""):
+        if (new_name != ""):
             object_name = new_name
 
         else:
@@ -410,6 +461,9 @@ class CheckpointConnector(BaseConnector):
         if ((not ret_val) and (not resp_json)):
             return action_result.get_status()
 
+        # logout of session
+        self._logout(self)
+
         return action_result.set_status(phantom.APP_SUCCESS, "Successfully blocked {0}".format('subnet' if length != '32' else 'IP'))
 
     def _unblock_ip(self, param):
@@ -451,7 +505,114 @@ class CheckpointConnector(BaseConnector):
         if ((not ret_val) and (not resp_json)):
             return action_result.get_status()
 
+        # logout of session
+        self._logout(self)
+
         return action_result.set_status(phantom.APP_SUCCESS, "Successfully unblocked {0}".format('subnet' if length != '32' else 'IP'))
+
+    def _list_hosts(self, param):
+        action_result = self.add_action_result(ActionResult(dict(param)))
+
+        if not(self._login(action_result)):
+            return action_result.get_status()
+
+        endpoint = 'show-hosts'
+
+        ret_val, resp_json = self._make_rest_call(endpoint, {}, action_result)
+
+        if ((not ret_val) and (not resp_json)):
+            return action_result.get_status()
+
+        action_result.add_data(resp_json)
+
+        total_num_hosts = 0
+
+        if resp_json.get('total'):
+            total_num_hosts = resp_json.get('total')
+            action_result.update_summary({'Total number of hosts': total_num_hosts})
+            message = "Succesfully found {0} host{1}".format(total_num_hosts, '' if total_num_hosts == 1 else 's')
+        else:
+            message = "Found no hosts"
+
+        self._logout(self)
+
+        return action_result.set_status(phantom.APP_SUCCESS, message)
+
+    def _add_host(self, param):
+
+        action_result = self.add_action_result(ActionResult(dict(param)))
+
+        if not(self._login(action_result)):
+            return action_result.get_status()
+
+        ip = param.get(phantom.APP_JSON_IP)
+        ipv4 = param.get('ipv4')
+        ipv6 = param.get('ipv6')
+        name = param['name']
+
+        endpoint = 'add-host'
+
+        body = {'name': name}
+
+        if ip:
+            body['ip-address'] = ip
+        elif ipv4 and ipv6:
+            body['ipv4-address'] = ipv4
+            body['ipv6-address'] = ipv6
+        elif ipv4:
+            body['ipv4-address'] = ipv4
+        elif ipv6:
+            body['ipv6-address'] = ipv6
+        else:
+            return action_result.set_status(phantom.APP_ERROR, "You must specify an ip address")
+
+        ret_val, resp_json = self._make_rest_call(endpoint, body, action_result)
+
+        if (not ret_val) and (not resp_json):
+            return action_result.get_status()
+
+        action_result.add_data(resp_json)
+
+        if (not self._publish_and_wait(action_result)):
+            return action_result.set_status(phantom.APP_ERROR, "Could not publish session after changes")
+
+        message = "Successfully added host"
+
+        self._logout(self)
+
+        return action_result.set_status(phantom.APP_SUCCESS, message)
+
+    def _delete_host(self, param):
+        action_result = self.add_action_result(ActionResult(dict(param)))
+
+        if not(self._login(action_result)):
+            return action_result.get_status()
+
+        name = param.get('name')
+        uid = param.get('uid')
+
+        endpoint = 'delete-host'
+
+        if uid:
+            ret_val, resp_json = self._make_rest_call(endpoint, {'uid': uid}, action_result)
+        elif name:
+            ret_val, resp_json = self._make_rest_call(endpoint, {'name': name}, action_result)
+        else:
+            return action_result.set_status(phantom.APP_ERROR, "You must specify the host name or unique identifier")
+
+        if (not ret_val) and (not resp_json):
+            return action_result.get_status()
+
+        action_result.add_data(resp_json)
+
+        if (not self._publish_and_wait(action_result)):
+            return action_result.set_status(phantom.APP_ERROR, "Could not publish session after changes")
+
+        message = "Successfully deleted host"
+
+        self._logout(self)
+
+        return action_result.set_status(phantom.APP_SUCCESS, message)
 
     def handle_action(self, param):
 
@@ -471,6 +632,14 @@ class CheckpointConnector(BaseConnector):
             result = self._list_layers(param)
         elif (action_id == self.ACTION_ID_LIST_POLICIES):
             result = self._list_policies(param)
+        elif (action_id == self.ACTION_ID_LOGOUT_SESSION):
+            result = self._logout_session(param)
+        elif (action_id == self.ACTION_ID_DELETE_HOST):
+            result = self._delete_host(param)
+        elif (action_id == self.ACTION_ID_LIST_HOSTS):
+            result = self._list_hosts(param)
+        elif (action_id == self.ACTION_ID_ADD_HOST):
+            result = self._add_host(param)
 
         return result
 
@@ -482,7 +651,7 @@ if __name__ == '__main__':
     # pudb.set_trace()
 
     if (len(sys.argv) < 2):
-        print "No test json specified as input"
+        print("No test json specified as input")
         exit(0)
 
     with open(sys.argv[1]) as f:
@@ -493,6 +662,6 @@ if __name__ == '__main__':
         connector = CheckpointConnector()
         connector.print_progress_message = True
         ret_val = connector._handle_action(json.dumps(in_json), None)
-        print (json.dumps(json.loads(ret_val), indent=4))
+        print(json.dumps(json.loads(ret_val), indent=4))
 
     exit(0)
